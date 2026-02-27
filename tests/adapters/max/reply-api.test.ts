@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Message } from '@maxhub/max-bot-api/types';
 import { createReferenceAdapter } from '../../../src/adapters/reference-adapter/index.js';
+import { createMaxReplyApi } from '../../../src/adapters/max/reply-api.js';
 import { Context } from '../../../src/core/context.js';
 import type { ReplyApi } from '../../../src/adapters/types.js';
 
@@ -84,5 +85,29 @@ describe('Context.reply (ReplyApi binding)', () => {
     });
     const ctx = new Context({ update_type: 'message_constructed', timestamp: 0 }, { adapter });
     await expect(ctx.reply('hi')).rejects.toThrow('NotImplemented');
+  });
+});
+
+describe('Max createMaxReplyApi callback reply target', () => {
+  it('returns ReplyTarget for callback_query update with message.recipient', () => {
+    const api = { sendMessageToChat: async () => ({}) };
+    const replyApi = createMaxReplyApi(api);
+    const update = {
+      update_id: 1,
+      callback_query: {
+        payload: 'ok',
+        message: { recipient: { chat_id: 456 } },
+      },
+    };
+    expect(replyApi.getReplyTargetFromUpdate(update)).toEqual({ chatId: 456 });
+  });
+
+  it('returns ReplyTarget for callback_query update with message.chat.id', () => {
+    const api = { sendMessageToChat: async () => ({}) };
+    const replyApi = createMaxReplyApi(api);
+    const update = {
+      callback_query: { message: { chat: { id: 789 } } },
+    };
+    expect(replyApi.getReplyTargetFromUpdate(update)).toEqual({ chatId: 789 });
   });
 });

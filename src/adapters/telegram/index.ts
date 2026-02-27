@@ -162,6 +162,9 @@ function createWebhookController(bot: UpdateHandler): { controller: TelegramWebh
 
 export function createTelegramAdapter(config: TelegramAdapterConfig): TelegramAdapter {
   const { token } = config;
+  if (!token || typeof token !== 'string' || !token.trim()) {
+    throw new Error('BOT_TOKEN is required');
+  }
   const referenceAdapter = createReferenceAdapter(async (ctx, text) => {
     const chatId = getChatIdFromNormalized(ctx.update);
     if (chatId === undefined) throw new Error('No chat_id in update');

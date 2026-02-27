@@ -13,6 +13,9 @@ export interface MaxAdapterConfig {
 
 export function createMaxAdapter(config: MaxAdapterConfig): BotAdapter & Adapter {
   const { token } = config;
+  if (!token || typeof token !== 'string' || !token.trim()) {
+    throw new Error('BOT_TOKEN is required');
+  }
   const api = createMaxBotApi({ token });
   const replyApi = createMaxReplyApi(api);
   const referenceAdapter = createReferenceAdapter(async (ctx, text, extra) => {

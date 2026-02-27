@@ -18,13 +18,23 @@ function getChatIdFromUpdate(update: unknown): number | undefined {
   if (direct !== undefined) return direct;
 
   const message = update['message'];
-  if (!isRecord(message)) return undefined;
+  if (isRecord(message)) {
+    const recipient = message['recipient'];
+    if (isRecord(recipient)) return getNumber(recipient['chat_id']);
+  }
 
-  const recipient = message['recipient'];
-  if (!isRecord(recipient)) return undefined;
+  const cq = update['callback_query'];
+  if (isRecord(cq)) {
+    const cqMsg = cq['message'];
+    if (isRecord(cqMsg)) {
+      const recipient = cqMsg['recipient'];
+      if (isRecord(recipient)) return getNumber(recipient['chat_id']);
+      const chat = cqMsg['chat'];
+      if (isRecord(chat)) return getNumber(chat['id']);
+    }
+  }
 
-  const chatId = recipient['chat_id'];
-  return getNumber(chatId);
+  return undefined;
 }
 
 export function createMaxReplyApi(api: MaxBotApi): ReplyApi {

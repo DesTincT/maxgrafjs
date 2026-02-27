@@ -45,7 +45,19 @@ function normalizeMaxUpdate(raw: unknown): unknown {
     (() => {
       const msg = getNestedRecord(raw, 'message');
       const recipient = msg ? getNestedRecord(msg, 'recipient') : undefined;
-      return recipient ? getNumber(recipient['chat_id']) : undefined;
+      if (recipient) return getNumber(recipient['chat_id']);
+      const cb = getNestedRecord(raw, 'callback');
+      const cbRecipient = cb ? getNestedRecord(cb, 'recipient') : undefined;
+      if (cbRecipient) return getNumber(cbRecipient['chat_id']);
+      const cbMsg = cb ? getNestedRecord(cb, 'message') : undefined;
+      const cbMsgRecipient = cbMsg ? getNestedRecord(cbMsg, 'recipient') : undefined;
+      if (cbMsgRecipient) return getNumber(cbMsgRecipient['chat_id']);
+      const cq = getNestedRecord(raw, 'callback_query');
+      const cqMsg = cq ? getNestedRecord(cq, 'message') : undefined;
+      const cqMsgRecipient = cqMsg ? getNestedRecord(cqMsg, 'recipient') : undefined;
+      if (cqMsgRecipient) return getNumber(cqMsgRecipient['chat_id']);
+      const cqChat = cqMsg ? getNestedRecord(cqMsg, 'chat') : undefined;
+      return cqChat ? getNumber(cqChat['id']) : undefined;
     })();
 
   const messageText =
