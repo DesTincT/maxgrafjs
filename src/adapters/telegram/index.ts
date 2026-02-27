@@ -18,6 +18,7 @@ export interface TelegramAdapterConfig {
 
 export interface TelegramAdapter extends BotAdapter, Adapter {
   createWebhookController(bot: UpdateHandler): { controller: TelegramWebhookController };
+  registerWebhook(options: RegisterWebhookOptions): Promise<unknown>;
 }
 
 function getMessage(update: unknown): Record<string, unknown> | undefined {
@@ -81,6 +82,19 @@ async function sendMessage(token: string, chatId: number, text: string): Promise
   return res.json();
 }
 
+async function setWebhook(token: string, options: RegisterWebhookOptions): Promise<unknown> {
+  const url = `${API_BASE}${token}/setWebhook`;
+  const body: Record<string, string> = { url: options.url };
+  if (options.secret) body.secret_token = options.secret;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`setWebhook ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
 function getChatIdFromNormalized(update: unknown): number | undefined {
   if (!isRecord(update)) return undefined;
   const direct = getNumber(update['chat_id']);
@@ -94,6 +108,11 @@ function getChatIdFromNormalized(update: unknown): number | undefined {
 export interface TelegramWebhookOptions {
   port: number;
   path?: string;
+}
+
+export interface RegisterWebhookOptions {
+  url: string;
+  secret?: string;
 }
 
 export interface TelegramWebhookController {
@@ -210,6 +229,9 @@ export function createTelegramAdapter(config: TelegramAdapterConfig): TelegramAd
     },
     createWebhookController(bot: UpdateHandler): { controller: TelegramWebhookController } {
       return createWebhookController(bot);
+    },
+    registerWebhook(options: RegisterWebhookOptions): Promise<unknown> {
+      return setWebhook(token, options);
     },
   };
 }

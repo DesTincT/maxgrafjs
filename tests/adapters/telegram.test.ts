@@ -102,6 +102,45 @@ describe('Telegram adapter', () => {
     });
   });
 
+  describe('registerWebhook', () => {
+    let fetchMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
+      vi.stubGlobal('fetch', fetchMock);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('calls setWebhook API when WEBHOOK_URL would be set (registerWebhook called)', async () => {
+      const adapter = createTelegramAdapter({ token });
+      const url = 'https://example.com/webhook';
+      const secret = 'my-secret';
+      await adapter.registerWebhook({ url, secret });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        `https://api.telegram.org/bot${token}/setWebhook`,
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, secret_token: secret }),
+        }),
+      );
+    });
+
+    it('calls setWebhook without secret when secret not provided', async () => {
+      const adapter = createTelegramAdapter({ token });
+      const url = 'https://example.com/hook';
+      await adapter.registerWebhook({ url });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ url });
+    });
+  });
+
   describe('webhook controller', () => {
     const webhookPort = 38472;
     const webhookPath = '/webhook';

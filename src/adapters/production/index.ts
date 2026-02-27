@@ -1,5 +1,6 @@
 import {
   createTelegramAdapter,
+  type RegisterWebhookOptions,
   type TelegramAdapter,
   type TelegramAdapterConfig,
   type TelegramWebhookController,
@@ -11,6 +12,7 @@ export interface ProductionAdapterConfig {
 
 export type ProductionAdapter = TelegramAdapter;
 export type ProductionWebhookController = TelegramWebhookController;
+export type { RegisterWebhookOptions };
 
 export function createProductionAdapter(
   config: ProductionAdapterConfig,
