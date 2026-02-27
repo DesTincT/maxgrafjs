@@ -5,6 +5,14 @@ export type PollingGetUpdates = (params: { offset?: number; signal: AbortSignal 
 export interface PollingOptions {
   getUpdates: PollingGetUpdates;
   intervalMs?: number;
+  /** Base delay (ms) for backoff on getUpdates error. Default 500. */
+  backoffBaseMs?: number;
+  /** Max delay (ms) for backoff. Default 5000. */
+  backoffMaxMs?: number;
+  /** Min interval (ms) between warning logs. Default 10000. */
+  logThrottleMs?: number;
+  /** Logger for backoff warnings. Default console. */
+  logger?: { warn: (msg: string) => void };
   dedupe?: {
     getUpdateId?: (update: unknown) => number | undefined;
     getKey?: (update: unknown) => string | number | undefined;
@@ -58,8 +66,18 @@ function cleanupDedupeStore(store: Map<string | number, number>, now: number, ma
   }
 }
 
+function computeBackoffMs(attempt: number, baseMs: number, maxMs: number): number {
+  if (attempt <= 0) return baseMs;
+  const exp = baseMs * Math.pow(2, attempt - 1);
+  return Math.min(Math.max(exp, baseMs), maxMs);
+}
+
 export function createPollingTransport(options: PollingOptions): PollingController {
   const intervalMs = options.intervalMs ?? 250;
+  const backoffBaseMs = options.backoffBaseMs ?? 500;
+  const backoffMaxMs = options.backoffMaxMs ?? 5000;
+  const logThrottleMs = options.logThrottleMs ?? 10_000;
+  const logger = options.logger ?? console;
   const getUpdateId = options.dedupe?.getUpdateId ?? (() => undefined);
   const getKey = options.dedupe?.getKey ?? ((u) => defaultGetKey(u, getUpdateId));
   const ttlMs = options.dedupe?.ttlMs ?? 60_000;
@@ -74,6 +92,8 @@ export function createPollingTransport(options: PollingOptions): PollingControll
   let lastUpdateId: number | undefined;
   const seen = new Map<string | number, number>();
   let nextCleanupAt = 0;
+  let errorCount = 0;
+  let lastLogAt = 0;
 
   return {
     start(onUpdate: OnUpdate): void {
@@ -91,9 +111,20 @@ export function createPollingTransport(options: PollingOptions): PollingControll
           let updates: readonly unknown[];
           try {
             updates = await options.getUpdates({ offset, signal: abortController.signal });
-          } catch (_err) {
+            errorCount = 0;
+          } catch (err) {
             if (abortController.signal.aborted) break;
-            throw _err;
+            errorCount += 1;
+            const now = Date.now();
+            if (now - lastLogAt >= logThrottleMs) {
+              lastLogAt = now;
+              const msg = err instanceof Error ? err.message : String(err);
+              logger.warn(`[polling] getUpdates error (${errorCount}x): ${msg}`);
+            }
+            const backoffMs = computeBackoffMs(errorCount, backoffBaseMs, backoffMaxMs);
+            await sleep(backoffMs, abortController.signal);
+            if (abortController.signal.aborted) break;
+            continue;
           }
 
           for (const update of updates) {

@@ -186,4 +186,89 @@ describe('polling transport', () => {
 
     expect(calls).toEqual(['x']);
   });
+
+  it('backoff: error count increases on consecutive failures then resets after success', async () => {
+    const warns: string[] = [];
+    const logger = { warn: (msg: string) => warns.push(msg) };
+    let getUpdatesCalls = 0;
+    const bot = new Bot({ adapter: testAdapter });
+    bot.use(Composer.on('text', () => {}));
+
+    const controller = bot.startPolling({
+      intervalMs: 0,
+      backoffBaseMs: 5,
+      backoffMaxMs: 20,
+      logThrottleMs: 0,
+      logger,
+      getUpdates: async ({ signal }) => {
+        if (signal.aborted) return [];
+        getUpdatesCalls += 1;
+        if (getUpdatesCalls <= 2) throw new Error('transient');
+        if (getUpdatesCalls === 3) return [{ update_id: 1, message: { text: 'ok' } }];
+        if (getUpdatesCalls === 4) throw new Error('again');
+        return [];
+      },
+    });
+
+    await new Promise((r) => setTimeout(r, 80));
+    await controller.stop();
+
+    expect(getUpdatesCalls).toBeGreaterThanOrEqual(4);
+    expect(warns.length).toBeGreaterThanOrEqual(2);
+    expect(warns[0]).toMatch(/1x|2x/);
+    expect(warns.some((w) => w.includes('1x'))).toBe(true);
+  });
+
+  it('backoff: logging is rate-limited', async () => {
+    const warns: string[] = [];
+    const logger = { warn: (msg: string) => warns.push(msg) };
+    let throws = 0;
+    const bot = new Bot({ adapter: testAdapter });
+    bot.use(Composer.on('text', () => {}));
+
+    const controller = bot.startPolling({
+      intervalMs: 0,
+      backoffBaseMs: 2,
+      backoffMaxMs: 8,
+      logThrottleMs: 50,
+      logger,
+      getUpdates: async ({ signal }) => {
+        if (signal.aborted) return [];
+        throws += 1;
+        if (throws <= 5) throw new Error('fail');
+        return [];
+      },
+    });
+
+    await new Promise((r) => setTimeout(r, 30));
+    await controller.stop();
+
+    expect(warns.length).toBeLessThanOrEqual(2);
+  });
+
+  it('stop() aborts quickly during backoff sleep', async () => {
+    let getUpdatesCalls = 0;
+    const bot = new Bot({ adapter: testAdapter });
+    bot.use(Composer.on('text', () => {}));
+
+    const controller = bot.startPolling({
+      intervalMs: 0,
+      backoffBaseMs: 5000,
+      backoffMaxMs: 10000,
+      getUpdates: async ({ signal }) => {
+        if (signal.aborted) return [];
+        getUpdatesCalls += 1;
+        if (getUpdatesCalls === 1) throw new Error('trigger backoff');
+        return [];
+      },
+    });
+
+    const t0 = Date.now();
+    await new Promise((r) => setTimeout(r, 10));
+    await controller.stop();
+    const elapsed = Date.now() - t0;
+
+    expect(elapsed).toBeLessThan(1000);
+    expect((controller as { isRunning(): boolean }).isRunning()).toBe(false);
+  });
 });
