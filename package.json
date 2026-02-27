@@ -1,6 +1,6 @@
 {
   "name": "pipegraf",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Transport-agnostic adapter-based bot framework for Node.js and TypeScript.",
   "license": "MIT",
   "repository": {
