@@ -1,5 +1,10 @@
 ## Pipegraf
 
+[![npm version](https://img.shields.io/npm/v/pipegraf.svg)](https://www.npmjs.com/package/pipegraf)
+[![npm downloads](https://img.shields.io/npm/dm/pipegraf.svg)](https://www.npmjs.com/package/pipegraf)
+[![license](https://img.shields.io/npm/l/pipegraf.svg)](https://www.npmjs.com/package/pipegraf)
+
+
 This project is a Node.js/TypeScript bot framework built around a deterministic middleware runtime and explicit adapters.
 
 ## What Problem It Solves
