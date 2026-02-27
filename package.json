@@ -45,6 +45,11 @@
       "import": "./dist/adapters/mock/index.js",
       "require": "./dist/adapters/mock/index.cjs"
     },
+    "./adapters/production": {
+      "types": "./dist/adapters/production/index.d.ts",
+      "import": "./dist/adapters/production/index.js",
+      "require": "./dist/adapters/production/index.cjs"
+    },
     "./adapters/reference-adapter": {
       "types": "./dist/adapters/reference-adapter/index.d.ts",
       "import": "./dist/adapters/reference-adapter/index.js",

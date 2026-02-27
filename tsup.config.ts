@@ -5,6 +5,7 @@ export default defineConfig({
     'src/index.ts',
     'src/adapters/max/index.ts',
     'src/adapters/mock/index.ts',
+    'src/adapters/production/index.ts',
     'src/adapters/reference-adapter/index.ts',
     'src/adapters/telegram/index.ts',
   ],
