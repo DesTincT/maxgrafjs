@@ -45,6 +45,10 @@ export interface Transport {
 export interface PollingTransportOptions {
   getUpdates: (params: { offset?: number; signal: AbortSignal }) => Promise<readonly unknown[]>;
   intervalMs?: number;
+  backoffBaseMs?: number;
+  backoffMaxMs?: number;
+  logThrottleMs?: number;
+  logger?: { warn: (msg: string) => void };
   dedupe?: {
     getUpdateId?: (update: unknown) => number | undefined;
     getKey?: (update: unknown) => string | number | undefined;

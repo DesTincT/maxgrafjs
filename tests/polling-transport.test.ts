@@ -192,7 +192,7 @@ describe('polling transport', () => {
     const logger = { warn: (msg: string) => warns.push(msg) };
     let getUpdatesCalls = 0;
     const bot = new Bot({ adapter: testAdapter });
-    bot.use(Composer.on('text', () => {}));
+    bot.use(Composer.on('text', () => undefined));
 
     const controller = bot.startPolling({
       intervalMs: 0,
@@ -224,7 +224,7 @@ describe('polling transport', () => {
     const logger = { warn: (msg: string) => warns.push(msg) };
     let throws = 0;
     const bot = new Bot({ adapter: testAdapter });
-    bot.use(Composer.on('text', () => {}));
+    bot.use(Composer.on('text', () => undefined));
 
     const controller = bot.startPolling({
       intervalMs: 0,
@@ -249,7 +249,7 @@ describe('polling transport', () => {
   it('stop() aborts quickly during backoff sleep', async () => {
     let getUpdatesCalls = 0;
     const bot = new Bot({ adapter: testAdapter });
-    bot.use(Composer.on('text', () => {}));
+    bot.use(Composer.on('text', () => undefined));
 
     const controller = bot.startPolling({
       intervalMs: 0,

@@ -72,7 +72,6 @@ bot.command('start', (ctx) => ctx.reply('Hello!'));
 bot.on('message', (ctx) => ctx.reply('Got it.'));
 await bot.launch({ polling: {} });
 console.log('Bot started (Telegram).');
-
 ```
 
 ## Sessions / Scenes / Wizard Overview
