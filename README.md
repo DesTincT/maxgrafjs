@@ -93,6 +93,65 @@ console.log('Bot started (Telegram).');
 
 `createWizard(name, steps)` provides step-based interaction with deterministic progression (`next`, `back`, `selectStep`).
 
+### Example: Keyboard (callback actions)
+
+Use `bot.action(callbackData, handler)` to handle inline keyboard button presses. The adapter normalizes `callback_query` into `ctx.callbackData`.
+
+```ts
+import { Bot } from 'pipegraf';
+import { createTelegramAdapter } from 'pipegraf/adapters/telegram';
+
+const bot = new Bot({ adapter: createTelegramAdapter({ token: process.env.TELEGRAM_BOT_TOKEN! }) });
+
+bot.command('start', async (ctx) => {
+  await ctx.reply('Choose:', {
+    reply_markup: {
+      inline_keyboard: [[
+        { text: 'Yes', callback_data: 'confirm:yes' },
+        { text: 'No', callback_data: 'confirm:no' },
+      ]],
+    },
+  });
+});
+
+bot.action('confirm:yes', (ctx) => ctx.reply('You chose Yes.'));
+bot.action('confirm:no', (ctx) => ctx.reply('You chose No.'));
+```
+
+Note: `ctx.reply(text, extra)` passes `extra` to the adapter; the bundled Telegram adapter currently sends only `text`. For inline keyboards use an adapter that forwards `extra` as `reply_markup`. See `examples/keyboard.js` for a runnable flow (reference adapter + callback handling).
+
+### Example: Wizard
+
+Step-based flow with `createStage()`, `createWizard()`, session, and `stage.enter()`:
+
+```ts
+import { Bot, session, createStage, createWizard } from 'pipegraf';
+import { createReferenceAdapter } from 'pipegraf/adapters/reference-adapter';
+
+const adapter = createReferenceAdapter(async (ctx, text) => { /* send to transport */ });
+const bot = new Bot({ adapter });
+const stage = createStage();
+
+stage.register(
+  createWizard('flow', [
+    async (ctx) => {
+      await ctx.reply('Step 1: send a message');
+      await ctx.wizard?.next();
+    },
+    async (ctx) => {
+      await ctx.reply('Step 2: done');
+      await ctx.wizard?.next();
+    },
+  ]),
+);
+
+bot.use(session());
+bot.use(stage.middleware());
+bot.command('start', stage.enter('flow'), async (ctx) => ctx.reply('Wizard started.'));
+```
+
+Runnable version: `examples/keyboard.js` (includes wizard + callback actions).
+
 ## Runtime Characteristics
 
 - deterministic middleware pipeline
